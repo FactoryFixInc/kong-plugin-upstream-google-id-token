@@ -15,7 +15,7 @@ This file is self-contained so Gemini Code Assist can review this repo without f
 
 ## Kong Plugin Development
 
-- These repos are Lua Kong plugin packages, not NestJS services, frontend apps, or generic TypeScript packages. Review Kong/OpenResty runtime behavior, plugin schema, rockspec packaging, and API Gateway compatibility first.
+- These repos are Lua Kong plugin packages. Review Kong/OpenResty runtime behavior, plugin schema, rockspec packaging, and API Gateway compatibility first.
 - Treat plugin name, phase handlers, `PRIORITY`, `VERSION`, schema fields, defaults, required settings, protocol support, and entity checks as public API. Changes can break Kong declarative config, service-generated OpenAPI annotations, or the API Gateway Docker image.
 - Keep rockspec names and versions, plugin source paths under `kong/plugins/<plugin-name>`, README installation docs, test fixtures, and any API Gateway install scripts or pinned tags in sync.
 - Be careful with plugin execution order. Priority changes can alter authentication, authorization, path rewriting, and upstream request mutation when multiple plugins run on the same request.
