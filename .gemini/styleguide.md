@@ -19,52 +19,15 @@ For `prod` PRs, post a short, creative deployment blessing or well-wish instead 
 - Avoid style-only comments unless the issue creates real confusion or violates an established repo convention.
 - Prefer a small number of high-signal comments over many low-value nits.
 
-## Backend Architecture
+## Package APIs and Libraries
 
-- Keep clean architecture boundaries intact: controllers handle transport concerns, use cases own business logic, and persistence/adapters only fetch, store, or send data.
-- Controllers should translate HTTP or messaging inputs into use case calls. They should not contain business rules, persistence calls, or cross-service orchestration.
-- Use cases should expose a single clear `execute()` entry point for a business flow. Split separate flows into separate use cases when branching logic stops being trivial.
-- Persistence classes should not validate business rules, throw HTTP exceptions, or decide what missing data means. Return data or `null` and let the caller decide.
-- Do not add DAO interfaces, wrapper services, or abstractions unless they remove real complexity or match an existing local pattern.
-
-## Error Handling and Logging
-
-- Preserve stack traces. Pass real `Error` objects through error paths instead of converting them to strings.
-- Use `logger.error(error)` only when the error is handled and will not be rethrown. This creates Google Cloud Error Reporting events.
-- Use `logger.warn()` when adding context before throwing or rethrowing. Avoid duplicate Error Reporting events for the same failure.
-- Do not log errors with interpolated strings such as ``logger.error(`message: ${error}`)`` because that loses stack trace details.
-- Persistence methods that catch storage or API errors should wrap them in the repo's established persistence error type when one exists.
-- Use cases should not throw NestJS HTTP exceptions such as `BadRequestException`, `NotFoundException`, or `InternalServerErrorException`.
-- Domain/use case code should throw domain errors that extend `Error`. Controllers are responsible for mapping domain errors to HTTP exceptions.
-- Avoid `console.log`, `console.warn`, and `console.error` in application code. Use the repo's logger.
-
-## Security and Authorization
-
-- Service-to-service calls should use FactoryFix service auth helpers such as `@factoryfixinc/nest-auth`. Do not forward user tokens between services.
-- Validate ownership and authorization at the boundary before acting on employer IDs, user IDs, project IDs, application IDs, subscription IDs, or organization IDs.
-- Protected endpoints should have the repo's established auth guards. Flag missing guards on new controllers or routes.
-- Check for insecure direct object reference risks when a caller can provide an entity ID.
-- Do not introduce secrets, tokens, credentials, or private keys in source files, docs, tests, Terraform, or example configs.
-- Infrastructure changes should use least-privilege IAM roles and Secret Manager references for sensitive values.
-
-## Testing
-
-- New controllers, use cases, and critical branches should have focused tests.
-- Prefer testing domain/use case behavior over thin persistence or adapter wrappers.
-- Co-locate Jest unit specs next to the source files when that is the local pattern.
-- Use repo scripts such as `yarn test`, `yarn lint`, `yarn build`, or `./bin/run-tests.sh`; do not suggest ad-hoc `npx` commands.
-- For Docker-only repos, expect commands to run through Docker Compose or the repo's bootstrap/test scripts.
-- Tests should cover happy paths, meaningful error paths, and edge cases such as missing data, zero values, authorization failures, and duplicate requests.
-- Avoid tests that only assert mocks were called without proving user-visible or domain behavior.
-
-## Data, Performance, and Operations
-
-- New database queries should have appropriate migrations and indexes. Flag large-table filters that lack index coverage.
-- Avoid loading unbounded datasets into memory. Prefer pagination, batching, streaming, or query limits.
-- Avoid N+1 access patterns and repeated updates to the same entity when a single update would work.
-- Prefer `promisePool()` for independent async work over collections. It is better than serially awaiting independent operations and safer than `Promise.all()` or `Promise.allSettled()` over unbounded arrays because it keeps concurrency explicit.
-- Choose a concurrency limit based on downstream database, API, queue, or rate-limit constraints. Name the limit with a clear constant when the value is not obvious.
-- If all-settled behavior is required, use the repo's bounded settled-pool utility when available instead of unbounded `Promise.allSettled()`.
-- Firestore multi-document or read-modify-write flows should use transactions when partial updates would create inconsistent state.
-- Pub/Sub topics, Cloud Tasks queues, and environment variables must be configured in all required places: service config, local Docker/test config, and infrastructure config.
-- Alerting and monitoring changes should include actionable runbook context where the local infrastructure pattern supports it.
+- Treat exported symbols as a public API. Flag changes to exported names, types, runtime behavior, module options, or generated artifacts that could break consuming repos.
+- Keep package entry points in sync with implementation changes, especially `src/index.ts`, generated type declarations, package `main`/`types` fields, and documented import paths.
+- Package code should stay reusable and consumer-agnostic. Avoid service-specific environment variables, controllers, queues, database migrations, Cloud Run assumptions, or application orchestration unless that is the package's explicit purpose.
+- Do not add runtime dependencies casually. Prefer existing dependencies, keep framework dependencies compatible with consuming services, and use peer dependencies when consumers are expected to provide the framework package.
+- Preserve stack traces and typed errors. Generic packages should throw normal `Error` subclasses or package-specific errors, not NestJS HTTP exceptions, unless the package is explicitly an HTTP transport helper.
+- Security-sensitive packages, such as auth, guard, token, or request-context helpers, should avoid logging credentials or tokens and should include tests for authorization edge cases.
+- Type-only, DTO, or interface packages should avoid adding runtime behavior unless it is already part of the package pattern.
+- Utility functions that process collections should keep concurrency bounded when they perform independent async work. Prefer the repo's bounded utility, such as `promisePool()`, over serial awaits or unbounded `Promise.all()` / `Promise.allSettled()`.
+- Tests should cover the package's public API, compatibility behavior, exported types where practical, error paths, and edge cases that would affect consumers.
+- Use the package's existing build, lint, and test scripts. Do not suggest service-only commands, Docker service stacks, database migrations, or deployment checks for package-only changes.
