@@ -5,12 +5,6 @@
 
 This file is self-contained so Gemini Code Assist can review this repo without following links to companion docs.
 
-## Release PRs
-
-If this PR targets the `prod` branch, do not perform a full code review. FactoryFix `staging` to `prod` pull requests are release PRs where code has already been reviewed before it reached `staging`.
-
-For `prod` PRs, post a short, creative deployment blessing or well-wish instead of review comments. Keep it brief and different each time.
-
 ## Review Tone
 
 - Be pragmatic and question-first. Prefer "Have you considered...?" or "Any reason not to...?" for non-blocking feedback.
